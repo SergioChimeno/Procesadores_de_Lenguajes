@@ -1,0 +1,43 @@
+{
+int var1;
+float var2;
+float;
+int x;
+float;
+float y;
+int[3][2] array1;
+var1=2;
+var2=-1.5;
+print(var1);
+esto es un error, seguir a partir del left_bracket
+	{
+	float var2;
+	var2=var1+1;
+	print(var1);
+	}
+	{
+	float[4][5][6] array2;
+	print(array2);
+	}
+print(var1);
+
+x=8;
+print(x);
+	{
+	float[3][5] array;
+	int y;
+	print(array);
+	y=x+2;
+	print(x);
+	print(y);
+	un error
+	}
+y=y+x+2.1;
+print(y);
+print(y);
+print(y);
+
+y=0;
+fltsfdgx;
+print(y);
+}

@@ -1,0 +1,80 @@
+import java_cup.runtime.*;
+import java.io.*;
+import java.util.List;
+import java.util.LinkedList;
+
+
+parser code {:
+public static void main(String[] argv){
+	if (argv.length == 0) {
+		      System.out.println("Uso : java Parser  <inputfile)>");
+		    }
+	else{
+	try {
+			java.io.FileInputStream stream = new java.io.FileInputStream(argv[0]);
+		    java.io.Reader reader = new java.io.InputStreamReader(stream);
+			Scanner analizadorLexico= new Yylex(reader);
+			Parser parserObj = new Parser();
+			parserObj.setScanner(analizadorLexico);
+			parserObj.parse();
+		}
+		catch(Exception ex) {
+			System.out.println("Error fatal.");
+		}
+	}
+}
+
+public void syntax_error(Symbol s){
+	System.out.println("[Parser] Error de sintaxis '"+symbl_name_from_id(s.sym)+"' "
+		+"en línea "+s.left+", columna "+s.right);
+		
+		List<Integer> listaIds=expected_token_ids();
+		LinkedList<String> list = new LinkedList<String>();
+		for(Integer tknId : listaIds)
+			list.add(sym.terminalNames[tknId]);
+		System.out.println("Tipos de tokens esperados: "+list);
+}
+
+:};
+
+
+/*Inicializacion del analizador lexico si procede*/
+//init with {: s.init(); :};
+/*Siguiente token al lexico*/
+//scan with {: return this.getScanner().next_token(); :};
+
+/*Terminales*/
+terminal SEMICOLON,PLUS,MINUS,TIMES,DIV,POW,SQRT;
+terminal UMINUS, UPLUS, RIGHT_BRACKET,LEFT_BRACKET;
+terminal Float FLOAT;
+
+/* No terminales*/
+non terminal listaexpr;
+non terminal Float expr;
+
+/*Precedencias*/
+
+precedence left MINUS,PLUS;
+precedence left TIMES,DIV;
+precedence right POW;
+precedence left UMINUS, UPLUS;
+
+
+/*Gramatica*/
+listaexpr ::= listaexpr expr:e SEMICOLON {: System.out.println("= "+e); :} |
+		error SEMICOLON |
+		/*Epsilon*/;
+		
+		
+expr ::= expr:e1 PLUS expr:e2 {: RESULT = new Float(e1.floatValue() + e2.floatValue()); :} |
+		expr:e1 MINUS expr:e2 {: RESULT = new Float(e1.floatValue() - e2.floatValue()); :} |
+		expr:e1 TIMES expr:e2 {: RESULT = new Float(e1.floatValue() * e2.floatValue()); :} |
+		expr:e1 DIV expr:e2 {: RESULT = new Float(e1.floatValue() / e2.floatValue());:} |
+		expr:e1 POW expr:e2 {: RESULT = new Float(Math.pow(e1.floatValue(),e2.floatValue())); :} |
+		SQRT LEFT_BRACKET expr:e RIGHT_BRACKET {: RESULT = new Float(Math.sqrt(e.floatValue())); :} |
+		MINUS expr:e {: RESULT = new Float(new Float(- e.floatValue())); :} %prec UMINUS |
+		PLUS expr:e {: RESULT = e; :} %prec UPLUS |
+		LEFT_BRACKET expr:e RIGHT_BRACKET {: RESULT = e; :} |
+		FLOAT:e {: RESULT = e; :};
+
+

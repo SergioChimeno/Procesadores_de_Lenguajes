@@ -1,0 +1,141 @@
+import java_cup.runtime.*;
+import java.io.*;
+import java.util.List;
+import java.util.LinkedList;
+
+
+parser code {:
+private PilaTablaSimbolos pila=new PilaTablaSimbolos();
+private TablaSimbolos ts;
+private Simbolo simb;
+
+public static void main(String[] argv){
+	if (argv.length == 0) {
+		      System.out.println("Uso : java Parser  <inputfile)>");
+		    }
+	else{
+	try {
+			java.io.FileInputStream stream = new java.io.FileInputStream(argv[0]);
+		    java.io.Reader reader = new java.io.InputStreamReader(stream);
+			Scanner analizadorLexico= new Yylex(reader);
+			Parser parserObj = new Parser();
+			parserObj.setScanner(analizadorLexico);
+			parserObj.parse();
+		}
+		catch(Exception ex) {
+         System.out.println("toString(): " + ex.toString());
+         System.out.println("getMessage(): " + ex.getMessage());
+         System.out.println("StackTrace: ");
+         ex.printStackTrace();
+		}
+	}
+}
+
+public void syntax_error(Symbol s){
+	System.out.println("[Parser] Error de sintaxis '"+symbl_name_from_id(s.sym)+"' "
+		+"en línea "+s.left+", columna "+s.right);
+		
+		List<Integer> listaIds=expected_token_ids();
+		LinkedList<String> list = new LinkedList<String>();
+		for(Integer tknId : listaIds)
+			list.add(sym.terminalNames[tknId]);
+		System.out.println("Tipos de tokens esperados: "+list);
+}
+
+//funciones auxiliares
+private void inicioBloque(){
+	if(ts != null)
+		pila.push(ts);
+	ts= new TablaSimbolos(pila);
+	System.out.println("\n<INICIO DE BLOQUE>");
+}
+private void finBloque(){
+	if(pila.size() >0)
+		ts = pila.pop();
+	else
+		ts=null;
+	System.out.println("<FIN DE BLOQUE>\n");
+}
+:};
+
+
+/*Terminales*/
+terminal SEMICOLON,PLUS,MINUS,TIMES,DIV,POW,SQRT;
+terminal UMINUS, UPLUS, RIGHT_BRACKET,LEFT_BRACKET;
+terminal TIPO_INT, TIPO_FLOAT, PRINT,ASSIGN;
+terminal LEFT_SQBRACKET, RIGHT_SQBRACKET, LEFT_BRACE,RIGHT_BRACE;
+terminal Float FLOAT;
+terminal Integer INTEGER;
+terminal String ID;
+
+/* No terminales*/
+non terminal programa, bloque, decls, instrs;
+non terminal decl, instr, inicio_bloque, fin_bloque;
+non terminal String tipo, t_basico, t_componente;
+non terminal Simbolo factor, expr;
+
+/*Precedencias*/
+precedence left error;
+precedence left MINUS,PLUS;
+precedence left TIMES,DIV;
+precedence right POW;
+precedence left UMINUS, UPLUS;
+
+
+/*Gramatica*/
+/*Si hay 2 errores seguidos los toma como 1*/
+programa::=bloque | error;
+bloque::= inicio_bloque {: inicioBloque(); :} decls  instrs fin_bloque {: finBloque(); :};
+inicio_bloque::=LEFT_BRACE | error LEFT_BRACE;
+fin_bloque::= RIGHT_BRACE | error RIGHT_BRACE;
+
+decls::=  decls decl | /*Êpsilon*/;
+decl::= tipo:t ID:id SEMICOLON
+		{: ts.put(id,new Simbolo(id,t)); :}| error SEMICOLON;
+
+tipo::= t_basico:tb t_componente:tc 
+		{: RESULT=(tc==null)?tb:"Array de ("+tc+", "+tb+")"; :};
+t_basico::= TIPO_INT {: RESULT="int"; :} | TIPO_FLOAT {: RESULT="float"; :};
+t_componente::= LEFT_SQBRACKET INTEGER:n RIGHT_SQBRACKET t_componente:tc 
+		{: RESULT=(tc==null)?""+n:n+" x "+tc;:} | 
+		/*Epsilon*/;
+
+instrs::= instrs instr | /*Epsilon*/;
+instr::=bloque | error SEMICOLON |
+		factor:f ASSIGN expr:e SEMICOLON 
+		{:
+			simb=f;
+			if(simb!=null && e!=null)
+				if(simb.getTipo().equals(e.getTipo())){
+					simb.setValor(e.getValor());
+				}else if(simb.getTipo().equals("float") && e.getTipo().equals("int")){
+					simb.setValor(e.getValor().floatValue());
+				}else{
+					System.out.println("Incompatibilidad de tipos: vairable"+
+						f+" no es de tipo "+e.getTipo()+"[ linea:"+fleft+", col:"+fright+"]");
+				}
+		:}| 
+		PRINT LEFT_BRACKET factor:f RIGHT_BRACKET SEMICOLON
+		{: if(f!=null) System.out.println("Simbolo: "+f);:};
+
+factor::= ID:id {:
+			RESULT=ts.get(id);
+			if(RESULT==null){
+				RESULT=null;
+				System.out.println("Variable no declarada: "+id+
+						"[ linea:"+idleft+", col:"+idright+"]");
+			}	
+	:};
+expr ::= expr:e1 PLUS expr:e2 {: RESULT = (e1==null||e2==null)?null:e1.mas(e2); :} |
+		expr:e1 MINUS expr:e2 {: RESULT = (e1==null||e2==null)?null:e1.menos(e2); :} |
+		expr:e1 TIMES expr:e2 {: RESULT = (e1==null||e2==null)?null:e1.por(e2); :} |
+		expr:e1 DIV expr:e2 {: RESULT = (e1==null||e2==null)?null:e1.entre(e2);:} |
+		expr:e1 POW expr:e2 {: RESULT = (e1==null||e2==null)?null:e1.elevado_a(e2); :} |
+		SQRT LEFT_BRACKET expr:e RIGHT_BRACKET {: RESULT = (e==null)?null:e.sqrt(); :} |
+		MINUS expr:e {: RESULT = (e==null)?null:e.cambiarSigno(); :} %prec UMINUS |
+		PLUS expr:e {: RESULT = e; :} %prec UPLUS |
+		LEFT_BRACKET expr:e RIGHT_BRACKET {: RESULT = e; :} |
+		FLOAT:e {: RESULT = new Simbolo("","float",e); :} |
+		INTEGER:e {: RESULT = new Simbolo("","int",e); :} |
+		factor:f {: RESULT=f; :};
+

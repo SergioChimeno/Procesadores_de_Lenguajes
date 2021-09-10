@@ -1,0 +1,41 @@
+BeginJava
+
+
+a="Hola Mundo";
+System.out.println(a);
+
+ABC
+
+if(a>b){
+	System.out.println("a es mayor que b");
+}else{
+	if(a==b)
+	{
+		System.out.println("a es igual que b");
+	}
+	else{
+		System.out.println("a es igual que b");
+	}
+}
+
+cadena="retw retrew tresdfg
+er twer tewt w"
+
+
+EndJava
+
+BeginPHP
+$c="Esta es otra cadena
+ghj ghj gh j";
+echo $c;
+
+if ($a > $b) {
+	echo " a es mayor que b";
+} elseif ($a == $b) {
+	echo " a es igual que b";
+}else { 
+	echo " a es menor que b";
+}
+
+EndPHP
+
